@@ -7,16 +7,16 @@
 * 优化器决定使用ID这个索引
 * 执行器负责具体执行，找到这一行，更新
 * 更新还涉及到两个日志模块：redlog（重做日志） binlog（归档日志）
-* 写redlog和更新内存后更新流程就算完成了
+* 写redo log和更新内存后更新流程就算完成了
 
-## redolog
+## redo log
 
 * InnoDB引擎特有的日志
 * 顺序写磁盘 速度快 WAL Write-Ahead Logging
 * 解决了IO成本和查找成本
-* redolog大小是固定的，循环写
+* redo log大小是固定的，循环写
 * 写满之后需要把记录更新到数据文件（刷盘），否则不能再执行新的的更新
-* redolog提供了数据库的`crash-safe`能力
+* redo log提供了数据库的`crash-safe`能力
 * `innodb_flush_log_at_trx_commit` 设置为1表示每次事务的redo log都会持久化到磁盘，建议开启：mysql异常重启数据不丢失
 * `sync_log`设置为1表示每次事务的binlog都持久化到磁盘，建议开启：mysql异常重启binlog不丢失
 
@@ -41,11 +41,11 @@
 * 一周一备最坏情况就要应用一周的 binlog 了
 * 根据业务重要性来评估RTO(目标恢复时间)成本
 
-## redolog vs binlog
+## redo log vs binlog
 
-* redolog是InnoDB引擎特有的；binlog是MySQL的server层实现的，所有引擎都可以使用
-* redolog是物理日志，binlog是逻辑日志
-* redolog是循环写，空间固定；binlog是可以追加写，后写日志不会覆盖之前的日志
+* redo log是InnoDB引擎特有的；binlog是MySQL的server层实现的，所有引擎都可以使用
+* redo log是物理日志，binlog是逻辑日志
+* redo log是循环写，空间固定；binlog是可以追加写，后写日志不会覆盖之前的日志
   
 ## 一个完整的更新语句执行流程
 
@@ -55,9 +55,9 @@
 
 1. 执行器找引擎获取ID=2这一行；（数据页在内存这直接返回，否则需要从磁盘读入内存，另优化器会使用ID索引查找）
 2. 执行器拿到数据，+1后再写入新数据
-3. 引擎更新数据到内存，同时写redolog，redolog此时状态：`prepare`
+3. 引擎更新数据到内存，同时写redo log，redo log此时状态：`prepare`
 4. 执行器生成binlog，并将其写入磁盘
-5. 执行器调用引擎提交事务的接口，redolog此时状态：`commit`
+5. 执行器调用引擎提交事务的接口，redo log此时状态：`commit`
 6. 结束
 
 ## 两阶段提交
@@ -70,15 +70,15 @@
   * 如果成功，则调用B将事务提交，使得B的修改生效
   * 如果失败，B的事务状态还保持prepare，修改的操作不会生效
 
-## 两阶段提交的应用：mysql更新一条数据，redolog的写入操作
+## 两阶段提交的应用：mysql更新一条数据，redo log的写入操作
 
-> 用来保证binlog和redolog的数据一致性
+> 用来保证binlog和redo log的数据一致性
 
 如果不使用两阶段，会发生什么？
 
-* 先写redolog，后写binlog：redolog写完，binlog还没来得及写mysql崩了，由于redolog的`crash-safe`会在系统恢复时找回数据，
+* 先写redo log，后写binlog：redo log写完，binlog还没来得及写mysql崩了，由于redo log的`crash-safe`会在系统恢复时找回数据，
   但是binlog中没有，使用binlog做数据恢复或同步从库时就会少一条记录
 
-* 先写binlog，后写redolog：binlog写完，redolog还没来的及写mysql崩了，系统回复时redolog无法找回这条记录，
+* 先写binlog，后写redo log：binlog写完，redo log还没来的及写mysql崩了，系统回复时redo log无法找回这条记录，
   而binlog中多出的这条数据会使得数据恢复或同步从库多一条记录
 
