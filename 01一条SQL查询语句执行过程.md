@@ -4,11 +4,11 @@
 
 1. server 层
    
-连接器 查询缓存 分析器 优化器 执行器
+   连接器 查询缓存 分析器 优化器 执行器
 
 2. 存储引擎层
    
-MyISAM InnoDB MEMORY
+   MyISAM InnoDB MEMORY
 
 ## 连接器
 
@@ -58,8 +58,8 @@ show variables like 'wait_timeout'
 * 连接的建立过程比较复杂，尽量使用长链接
 * 长链接有些时候会mysql占用内存涨的过快，导致mysql异常重启（因为系统会强行kill掉）
 * 又想使用长链接怎么办呢？
-定期断开长链接
-5.7以上版本可以使用`mysql_reset_connection`命令初始化连接资源（无需重连和初始化资源）
+   定期断开长链接
+   5.7以上版本可以使用`mysql_reset_connection`命令初始化连接资源（无需重连和初始化资源）
 
 ## 查询缓存
 
