@@ -30,7 +30,10 @@ mysql 会开辟一块内存 sort buffer，存放所有满足条件的记录的 c
 ## 如何优化排序
 
 1. 联合索引- city 和 name age创建联合索引，不用sort buffer排序了
+   
 2. 覆盖索引-避免回表 extra 中显示 using index
+   
+3. 以上两条在应用的时候也要考虑索引的维护是需要一定代价的
 
 
 
